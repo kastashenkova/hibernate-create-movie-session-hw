@@ -4,11 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import mate.academy.dao.MovieDao;
 import mate.academy.dao.MovieSessionDao;
 import mate.academy.exception.DataProcessingException;
 import mate.academy.lib.Dao;
-import mate.academy.model.Movie;
 import mate.academy.model.MovieSession;
 import mate.academy.util.HibernateUtil;
 import org.hibernate.Session;
@@ -55,15 +53,12 @@ public class MovieSessionDaoImpl implements MovieSessionDao {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             LocalDateTime startOfDay = date.atStartOfDay();
             LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
-            MovieDao movieDao = new MovieDaoImpl();
-            Movie movie = movieDao.get(movieId).orElse(null);
             Query<MovieSession> query = session.createQuery(
-                    "FROM MovieSession s"
-                            + " WHERE s.movie =: value"
+                    "FROM MovieSession s WHERE s.movie.id = :movieId"
                             + " AND s.showTime >= :start"
                             + " AND s.showTime < :end",
                     MovieSession.class);
-            query.setParameter("value", movie);
+            query.setParameter("movieId", movieId);
             query.setParameter("start", startOfDay);
             query.setParameter("end", endOfDay);
             return query.getResultList();
