@@ -1,14 +1,19 @@
 package mate.academy.dao.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import mate.academy.dao.MovieDao;
 import mate.academy.dao.MovieSessionDao;
 import mate.academy.exception.DataProcessingException;
 import mate.academy.lib.Dao;
+import mate.academy.model.Movie;
 import mate.academy.model.MovieSession;
 import mate.academy.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
 @Dao
 public class MovieSessionDaoImpl implements MovieSessionDao {
@@ -46,15 +51,25 @@ public class MovieSessionDaoImpl implements MovieSessionDao {
     }
 
     @Override
-    public List<MovieSession> getAll() {
-        List<MovieSession> res = null;
+    public List<MovieSession> findAvailableSessions(Long movieId, LocalDate date) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            res = session.createQuery(
-                    "FROM MovieSession", MovieSession.class).getResultList();
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+            MovieDao movieDao = new MovieDaoImpl();
+            Movie movie = movieDao.get(movieId).orElse(null);
+            Query<MovieSession> query = session.createQuery(
+                    "FROM MovieSession s"
+                            + " WHERE s.movie =: value"
+                            + " AND s.showTime >= :start"
+                            + " AND s.showTime < :end",
+                    MovieSession.class);
+            query.setParameter("value", movie);
+            query.setParameter("start", startOfDay);
+            query.setParameter("end", endOfDay);
+            return query.getResultList();
         } catch (Exception e) {
             throw new DataProcessingException(
                     "Can't get a list of movie sessions", e);
         }
-        return res;
     }
 }
